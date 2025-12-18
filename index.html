@@ -1,207 +1,201 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>行程管理系統</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>On-Site 行程管理</title>
 
 <style>
-    body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial;
-        margin: 20px;
-        background: #f5f5f7;
-    }
+body {
+    font-family: Arial, sans-serif;
+    padding: 15px;
+    background: #f2f2f7;
+}
 
-    h2, h3 {
-        margin-top: 10px;
-    }
+h2 {
+    margin-bottom: 10px;
+}
 
-    /* iOS 風格按鈕 */
-    .btn {
-        padding: 10px 18px;
-        border-radius: 12px;
-        border: none;
-        font-size: 15px;
-        cursor: pointer;
-        margin-right: 10px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    }
-    .btn-blue { background: #007aff; color: white; }
-    .btn-green { background: #34c759; color: white; }
-    .btn-gray { background: #8e8e93; color: white; }
+/* 使用者切換按鈕 - iOS style */
+.tabs {
+    margin-bottom: 12px;
+}
 
-    /* 使用者切換 */
-    .tabs button {
-        padding: 8px 16px;
-        border-radius: 10px;
-        border: none;
-        cursor: pointer;
-        background: #e5e5ea;
-        margin-right: 6px;
-    }
+.tabs button {
+    padding: 8px 18px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    background: #e5e5ea;
+    color: #333;
+    margin-right: 6px;
+    font-size: 15px;
+    transition: 0.2s;
+}
 
-    /* 行程卡片：固定同行 */
-    .schedule-item {
-        background: white;
-        padding: 14px;
-        margin-bottom: 12px;
-        border-radius: 12px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        width: 100%;
-    }
+.tabs button.active {
+    background: #007aff;
+    color: white;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
 
-    .schedule-item input[type="checkbox"] {
-        width: 22px;
-        height: 22px;
-        flex-shrink: 0;
-    }
+/* form layout */
+.input-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
 
-    /* 備註欄位（填滿） */
-    .note-input {
-        flex: 1;
-        padding: 8px;
-        border-radius: 8px;
-        border: 1px solid #ccc;
-    }
+.input-row input,
+.input-row textarea {
+    flex: 1;
+    padding: 10px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+}
 
-    /* 行動版仍保持同行 */
-    @media (max-width: 600px) {
-        .schedule-item { flex-direction: row; }
-        .note-input { width: 100%; }
-        .btn { width: 100%; margin-bottom: 6px; }
-    }
+textarea { height: 45px; resize: none; }
 
-    /* 提交時間顯示 */
-    #submitInfo {
-        margin-top: 15px;
-        padding: 12px;
-        background: #e5e5ea;
-        border-radius: 10px;
-        font-size: 14px;
-        color: #333;
-        display: none;
-    }
+button.submitBtn {
+    width: 100%;
+    background: #34c759;
+    color: white;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    margin-top: 8px;
+    font-size: 17px;
+    cursor: pointer;
+}
+
+#result {
+    margin-top: 20px;
+    padding: 10px;
+    background: white;
+    border-radius: 10px;
+}
+
+.entry {
+    background: #fff;
+    padding: 8px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border-left: 5px solid #007aff;
+}
 </style>
 </head>
 
 <body>
+<h2 id="currentUserTitle">ROGER 的行程</h2>
 
-<h2>📅 行程管理系統</h2>
-
+<!-- 使用者切換 -->
 <div class="tabs">
-    <button onclick="switchUser('ROGER')">ROGER</button>
-    <button onclick="switchUser('HANK')">HANK</button>
-    <button onclick="switchUser('FRANK')">FRANK</button>
+    <button id="btn-ROGER" class="active" onclick="switchUser('ROGER')">ROGER</button>
+    <button id="btn-HANK" onclick="switchUser('HANK')">HANK</button>
+    <button id="btn-FRANK" onclick="switchUser('FRANK')">FRANK</button>
 </div>
 
-<h3 id="currentUserTitle">ROGER 的行程</h3>
+<!-- 三欄同一列：地點 / 單號 / 備註 -->
+<div class="input-row">
+    <input type="text" id="place" placeholder="地點">
+    <input type="text" id="order" placeholder="單號">
+    <textarea id="note" placeholder="備註"></textarea>
+</div>
 
-<button class="btn btn-green" onclick="addItem()">＋ 新增行程</button>
-<button class="btn btn-blue" onclick="submitChecked()">提交已勾選 → Google Sheet</button>
+<button class="submitBtn" onclick="submitForm()">提交</button>
 
-<div id="list"></div>
-
-<div id="submitInfo"></div>
+<div id="result"></div>
 
 <script>
-const STORAGE_KEY = 'weeklyScheduleData';
-let data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-let currentUser = 'ROGER';
+let currentUser = "ROGER";
 
+/* 人員切換 + 反色 */
 function switchUser(u) {
     currentUser = u;
     document.getElementById("currentUserTitle").innerText = u + " 的行程";
-    render();
+
+    ["ROGER", "HANK", "FRANK"].forEach(name => {
+        const btn = document.getElementById("btn-" + name);
+        if (name === u) btn.classList.add("active");
+        else btn.classList.remove("active");
+    });
+
+    loadData();
 }
 
-function save() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+/* 讀取資料 */
+function loadData() {
+    fetch("YOUR_GOOGLE_SCRIPT_URL?name=" + currentUser)
+        .then(r => r.json())
+        .then(data => {
+            render(data);
+        });
 }
 
-function addItem() {
-    if (!data[currentUser]) data[currentUser] = [];
-    data[currentUser].push({ text: "", checked: false });
-    save();
-    render();
-}
+/* 顯示資料 */
+function render(data = []) {
+    const div = document.getElementById("result");
+    div.innerHTML = "";
 
-function updateText(i, val) {
-    data[currentUser][i].text = val;
-    save();
-}
-
-function toggleCheck(i) {
-    data[currentUser][i].checked = !data[currentUser][i].checked;
-    save();
-}
-
-async function submitChecked() {
-    const list = data[currentUser] || [];
-    const selected = list.filter(x => x.checked);
-
-    if (selected.length === 0) {
-        alert("沒有已勾選的行程");
+    if (!Array.isArray(data) || data.length === 0) {
+        div.innerHTML = "<p>目前沒有資料</p>";
         return;
     }
 
-    for (const item of selected) {
-        await fetch(
-            "https://script.google.com/macros/s/AKfycbz6VKVynauggX3CPLC2-CUaKpRkACaItVUeUpJ43LScrTD4nyuCq1EhB5XGSFd2djiQ/exec",
-            {
-                method: "POST",
-                mode: "no-cors",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    name: currentUser,
-                    note: item.text
-                }),
-            }
-        );
-    }
-
-    /* 清除已提交 */
-    data[currentUser] = list.filter(x => !x.checked);
-    save();
-    render();
-
-    /* 顯示提交時間 */
-    const info = document.getElementById("submitInfo");
-    const now = new Date();
-    const timeString =
-        now.getFullYear() + "/" +
-        (now.getMonth() + 1).toString().padStart(2, "0") + "/" +
-        now.getDate().toString().padStart(2, "0") +
-        " " +
-        now.toLocaleTimeString("zh-TW", { hour12: false });
-
-    info.innerText = "已提交：" + timeString;
-    info.style.display = "block";
-}
-
-function render() {
-    const container = document.getElementById("list");
-    container.innerHTML = "";
-    const list = data[currentUser] || [];
-
-    list.forEach((item, i) => {
-        const html = `
-            <div class="schedule-item">
-                <input type="checkbox" ${item.checked ? "checked" : ""} onclick="toggleCheck(${i})">
-                <input type="text"
-                    class="note-input"
-                    value="${item.text}"
-                    placeholder="行程內容..."
-                    oninput="updateText(${i}, this.value)">
+    data.forEach(item => {
+        div.innerHTML += `
+            <div class="entry">
+                <b>地點：</b>${item.place}<br>
+                <b>單號：</b>${item.order}<br>
+                <b>備註：</b>${item.note}<br>
+                <span style="font-size:12px;color:#999;">提交時間：${item.time}</span>
             </div>
         `;
-        container.insertAdjacentHTML("beforeend", html);
     });
 }
 
-switchUser("ROGER");
+/* 提交寫入 */
+function submitForm() {
+    const place = document.getElementById("place").value.trim();
+    const order = document.getElementById("order").value.trim();
+    const note  = document.getElementById("note").value.trim();
+
+    if (!place && !order && !note) {
+        alert("至少填寫一項！");
+        return;
+    }
+
+    const now = new Date().toLocaleString("zh-TW", { hour12: false });
+
+    fetch("https://script.google.com/macros/s/AKfycbwu9kUxnjs3pROyi88Cp8AWUnvu0vstGvSZaPg1UGwraQrg7ypiwzHn4FmunfFGWLk2/exec", {
+        method: "POST",
+        body: JSON.stringify({
+            name: currentUser,
+            place: place,
+            order: order,
+            note: note,
+            time: now
+        })
+    })
+    .then(r => r.text())
+    .then(() => {
+        document.getElementById("result").innerHTML =
+            `<div class="entry" style="border-left-color:#34c759;">
+                <b>地點：</b>${place}<br>
+                <b>單號：</b>${order}<br>
+                <b>備註：</b>${note}<br>
+                <span style="font-size:12px;color:#999;">提交時間：${now}</span>
+            </div>` + document.getElementById("result").innerHTML;
+
+        document.getElementById("place").value = "";
+        document.getElementById("order").value = "";
+        document.getElementById("note").value = "";
+    });
+}
+
+/* 初始讀取 */
+loadData();
 </script>
 
 </body>
