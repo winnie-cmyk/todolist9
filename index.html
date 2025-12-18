@@ -1,164 +1,276 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>行程管理系統</title>
 
 <style>
-body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: #f5f5f7;
-    padding: 20px;
-    margin: 0;
-}
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial;
+        margin: 20px;
+        background: #f5f5f7;
+    }
 
-/* iOS style buttons */
-.user-btn {
-    padding: 10px 22px;
-    border-radius: 20px;
-    border: none;
-    background: #e5e5ea;
-    margin-right: 8px;
-    font-size: 16px;
-}
-.user-btn.active {
-    background: #007aff;
-    color: white;
-}
+    h2, h3 {
+        margin-top: 10px;
+    }
 
-/* New task button */
-.add-btn {
-    background: #34c759;
-    color: white;
-    padding: 12px 22px;
-    border-radius: 14px;
-    border: none;
-    margin-right: 10px;
-}
+    /* iOS 風格按鈕 */
+    .btn {
+        padding: 10px 18px;
+        border-radius: 12px;
+        border: none;
+        font-size: 15px;
+        cursor: pointer;ac
+        margin-right: 10px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+    .btn-blue { background: #007aff; color: white; }
+    .btn-green { background: #34c759; color: white; }
+    .btn-gray { background: #8e8e93; color: white; }
 
-.submit-btn {
-    background: #5856d6;
-    color: white;
-    padding: 12px 22px;
-    border-radius: 14px;
-    border: none;
-}
+    /* 使用者切換 */
+    .tabs button {
+        padding: 8px 16px;
+        border-radius: 10px;
+        border: none;
+        cursor: pointer;
+        background: #e5e5ea;
+        margin-right: 6px;
+    }
 
-/* Input boxes */
-input {
-    width: 100%;
-    padding: 12px;
-    margin-top: 10px;
-    border: 1px solid #ccc;
-    border-radius: 12px;
-    font-size: 16px;
-}
+    /* 行程卡片 */
+    .schedule-item {
+        background: white;
+        padding: 14px;
+        margin-bottom: 12px;
+        border-radius: 12px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
 
-/* List area */
-.card {
-    margin-top: 20px;
-    background: white;
-    padding: 15px;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
+    /* 日期欄位 */
+    .schedule-item input[type="date"] {
+        padding: 8px;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+        width: 135px;
+    }
+
+    /* 備註欄位 */
+    .schedule-item input[type="text"] {
+        flex: 1;
+        padding: 8px;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+    }
+
+    /* 手機排版 */
+    @media (max-width: 600px) {
+        .schedule-item {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .schedule-item input[type="date"] {
+            width: 100%;
+        }
+        .schedule-item input[type="text"] {
+            width: 100%;
+        }
+        .btn { width: 100%; margin-bottom: 6px; }
+    }
+
+    /* 週表格模式 */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    th, td {
+        border: 1px solid #ddd;
+        padding: 10px;
+        text-align: left;
+        vertical-align: top;
+    }
+    th {
+        background: #f2f2f7;
+    }
 </style>
 </head>
 
 <body>
 
-<h2>行程管理系統</h2>
+<h2>📅 行程管理系統</h2>
 
-<!-- User selector -->
-<div id="userArea">
-    <button class="user-btn active" onclick="switchUser('ROGER')">ROGER</button>
-    <button class="user-btn" onclick="switchUser('HANK')">HANK</button>
-    <button class="user-btn" onclick="switchUser('FRANK')">FRANK</button>
+<div class="tabs">
+    <button onclick="switchUser('ROGER')">ROGER</button>
+    <button onclick="switchUser('HANK')">HANK</button>
+    <button onclick="switchUser('FRANK')">FRANK</button>
 </div>
 
-<h3 id="titleName">ROGER 的行程</h3>
+<h3 id="currentUserTitle">ROGER 的行程</h3>
 
-<!-- Inputs -->
-<button class="add-btn" onclick="createItem()">＋ 新增行程</button>
-<button class="submit-btn" onclick="submitAll()">提交已勾選 ➜ Google Sheet</button>
+<button class="btn btn-green" onclick="addItem()">＋ 新增行程</button>
+<button class="btn btn-blue" onclick="submitChecked()">提交已勾選 → Google Sheet</button>
 
-<input type="date" id="dateInput">
-<input type="text" id="noteInput" placeholder="備註…">
+<div id="list"></div>
 
-<!-- Display saved items -->
-<div class="card">
-    <h3>Local 行程列表</h3>
-    <div id="listView"></div>
-</div>
+<hr>
+<h3>每週表格模式（Week View） — <span id="weekRange"></span></h3>
+
+<button class="btn btn-blue" onclick="renderWeekView()">切換到週表格模式</button>
+<button class="btn btn-gray" onclick="render()">切換到清單模式</button>
+
+<div id="weekView"></div>
 
 <script>
-let currentUser = "ROGER";
-let API_URL = "https://script.google.com/macros/s/AKfycbxxfZbuLAWAXIXA6qYzKjvQrK-Y7ycRuSE9kPvnBA3KY5QbZtDKbDK5esmWl_lVq1SW/exec";  // ←★ MUST REPLACE ★
+const STORAGE_KEY = 'weeklyScheduleData';
+let data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+let currentUser = 'ROGER';
 
-// 切換使用者
-function switchUser(name) {
-    currentUser = name;
-    document.getElementById("titleName").innerText = `${name} 的行程`;
-
-    document.querySelectorAll(".user-btn").forEach(btn => btn.classList.remove("active"));
-    [...document.querySelectorAll(".user-btn")].find(b => b.innerText === name).classList.add("active");
-
-    loadList();
+function switchUser(u) {
+    currentUser = u;
+    document.getElementById("currentUserTitle").innerText = u + " 的行程";
+    render();
 }
 
-// 建立行程（本地）
-function createItem() {
-    const date = document.getElementById("dateInput").value;
-    const note = document.getElementById("noteInput").value.trim();
-
-    if (!date) return alert("請先選日期");
-
-    const id = crypto.randomUUID();
-
-    const item = { id, name: currentUser, date, note };
-
-    // localStorage
-    const key = "tasks";
-    const list = JSON.parse(localStorage.getItem(key) || "[]");
-    list.push(item);
-    localStorage.setItem(key, JSON.stringify(list));
-
-    loadList();
+function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
-// 顯示行程列表
-function loadList() {
-    const area = document.getElementById("listView");
-    const list = JSON.parse(localStorage.getItem("tasks") || "[]");
-
-    const my = list.filter(x => x.name === currentUser);
-
-    area.innerHTML = my.length
-        ? my.map(x => `<div>📅 ${x.date} — ${x.note || "（無備註）"}<br>ID: ${x.id}</div><hr>`).join("")
-        : "尚無資料";
+function addItem() {
+    if (!data[currentUser]) data[currentUser] = [];
+    data[currentUser].push({ date: "", text: "", checked: false });
+    save();
+    render();
 }
 
-// 提交資料到 Google Sheet（立即寫入）
-async function submitAll() {
-    const list = JSON.parse(localStorage.getItem("tasks") || "[]");
-    const my = list.filter(x => x.name === currentUser);
+function updateDate(i, val) {
+    data[currentUser][i].date = val;
+    save();
+}
 
-    if (my.length === 0) return alert("沒有資料可提交");
+function updateText(i, val) {
+    data[currentUser][i].text = val;
+    save();
+}
 
-    for (let item of my) {
-        await fetch(API_URL, {
+function toggleCheck(i) {
+    data[currentUser][i].checked = !data[currentUser][i].checked;
+    save();
+}
+
+async function submitChecked() {
+    const list = data[currentUser] || [];
+    const selected = list.filter(x => x.checked);
+
+    if (selected.length === 0) {
+        alert("沒有已勾選的行程");
+        return;
+    }
+
+    for (const item of selected) {
+        await fetch("https://script.google.com/macros/s/AKfycbxxfZbuLAWAXIXA6qYzKjvQrK-Y7ycRuSE9kPvnBA3KY5QbZtDKbDK5esmWl_lVq1SW/exec", {
             method: "POST",
+            mode: "no-cors",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(item)
+            body: JSON.stringify({
+                name: currentUser,
+                date: item.date,
+                text: item.text
+            }),
         });
     }
 
-    alert("已成功寫入 Google Sheet！");
+    data[currentUser] = list.filter(x => !x.checked);
+    save();
+    render();
+    alert("已提交至 Google Sheet!");
 }
 
-loadList();
+function render() {
+    const container = document.getElementById("list");
+    container.innerHTML = "";
+    const list = data[currentUser] || [];
+
+    list.forEach((item, i) => {
+        const div = document.createElement("div");
+        div.className = "schedule-item";
+
+        div.innerHTML = `
+            <input type="checkbox" ${item.checked ? "checked" : ""} onclick="toggleCheck(${i})">
+            <input type="date" value="${item.date}" onchange="updateDate(${i}, this.value)">
+            <input type="text" value="${item.text}" placeholder="備註…" oninput="updateText(${i}, this.value)">
+        `;
+
+        container.appendChild(div);
+    });
+}
+
+/* 自動偵測本週一～週五 */
+function getWeekRange() {
+    const today = new Date();
+    const day = today.getDay(); // 0(日)~6(六)
+
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - (day === 0 ? 6 : day - 1));
+
+    const friday = new Date(monday);
+    friday.setDate(monday.getDate() + 4);
+
+    return {
+        start: monday.toISOString().split("T")[0],
+        end: friday.toISOString().split("T")[0],
+        monday,
+        friday
+    };
+}
+
+/* 週表格模式 */
+function renderWeekView() {
+    const { start, end, monday } = getWeekRange();
+    document.getElementById("weekRange").innerText = `${start} - ${end}`;
+
+    const days = ["週一", "週二", "週三", "週四", "週五"];
+    const container = document.getElementById("weekView");
+    container.innerHTML = "";
+
+    let html = "<table><tr>";
+    days.forEach(d => html += `<th>${d}</th>`);
+    html += "</tr><tr>";
+
+    days.forEach(() => html += `<td class='dayCol'></td>`);
+    html += "</tr></table>";
+    container.innerHTML = html;
+
+    const cols = container.querySelectorAll(".dayCol");
+    const list = data[currentUser] || [];
+
+    list.forEach(item => {
+        if (!item.date) return;
+
+        let d = new Date(item.date);
+        let w = d.getDay();
+        if (w < 1 || w > 5) return;
+
+        let idx = w - 1;
+
+        let div = document.createElement("div");
+        div.textContent = item.text;
+        div.style.marginBottom = "6px";
+
+        cols[idx].appendChild(div);
+    });
+}
+
+switchUser("ROGER");
 </script>
 
 </body>
