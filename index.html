@@ -40,7 +40,7 @@
         margin-right: 6px;
     }
 
-    /* 行程卡片：永遠同一行（包含手機版） */
+    /* 行程卡片：固定同行 */
     .schedule-item {
         background: white;
         padding: 14px;
@@ -53,31 +53,13 @@
         width: 100%;
     }
 
-    /* 固定 checkbox 寬度 */
     .schedule-item input[type="checkbox"] {
         width: 22px;
         height: 22px;
         flex-shrink: 0;
     }
 
-    /* 日期框 */
-    .date-box {
-        padding: 8px 12px;
-        background: #e9e9eb;
-        border-radius: 8px;
-        border: 1px solid #d2d2d2;
-        color: #333;
-        flex-shrink: 0;
-    }
-    .date-box input {
-        border: none;
-        background: transparent;
-        font-size: 14px;
-        width: 140px;
-        outline: none;
-    }
-
-    /* 備註欄位（填滿剩餘空間） */
+    /* 備註欄位（填滿） */
     .note-input {
         flex: 1;
         padding: 8px;
@@ -85,40 +67,23 @@
         border: 1px solid #ccc;
     }
 
-    /* 手機模式：維持同行 */
+    /* 行動版仍保持同行 */
     @media (max-width: 600px) {
-        .schedule-item {
-            flex-direction: row;
-        }
-        .note-input {
-            width: 100%;
-        }
-        .date-box input {
-            width: 120px;
-        }
+        .schedule-item { flex-direction: row; }
+        .note-input { width: 100%; }
         .btn { width: 100%; margin-bottom: 6px; }
     }
 
-    /* 週表格模式 */
-    table {
-        width: 100%;
-        border-collapse: collapse;
+    /* 提交時間顯示 */
+    #submitInfo {
         margin-top: 15px;
-        background: white;
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        padding: 12px;
+        background: #e5e5ea;
+        border-radius: 10px;
+        font-size: 14px;
+        color: #333;
+        display: none;
     }
-    th, td {
-        border: 1px solid #ddd;
-        padding: 10px;
-        text-align: left;
-        vertical-align: top;
-    }
-    th {
-        background: #f2f2f7;
-    }
-
 </style>
 </head>
 
@@ -139,13 +104,7 @@
 
 <div id="list"></div>
 
-<hr>
-<h3>每週表格模式（Week View） — <span id="weekRange"></span></h3>
-
-<button class="btn btn-blue" onclick="renderWeekView()">切換到週表格模式</button>
-<button class="btn btn-gray" onclick="render()">切換到清單模式</button>
-
-<div id="weekView"></div>
+<div id="submitInfo"></div>
 
 <script>
 const STORAGE_KEY = 'weeklyScheduleData';
@@ -164,14 +123,9 @@ function save() {
 
 function addItem() {
     if (!data[currentUser]) data[currentUser] = [];
-    data[currentUser].push({ date: "", text: "", checked: false });
+    data[currentUser].push({ text: "", checked: false });
     save();
     render();
-}
-
-function updateDate(i, val) {
-    data[currentUser][i].date = val;
-    save();
 }
 
 function updateText(i, val) {
@@ -202,17 +156,29 @@ async function submitChecked() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     name: currentUser,
-                    date: item.date,
                     note: item.text
                 }),
             }
         );
     }
 
+    /* 清除已提交 */
     data[currentUser] = list.filter(x => !x.checked);
     save();
     render();
-    alert("已提交至 Google Sheet!");
+
+    /* 顯示提交時間 */
+    const info = document.getElementById("submitInfo");
+    const now = new Date();
+    const timeString =
+        now.getFullYear() + "/" +
+        (now.getMonth() + 1).toString().padStart(2, "0") + "/" +
+        now.getDate().toString().padStart(2, "0") +
+        " " +
+        now.toLocaleTimeString("zh-TW", { hour12: false });
+
+    info.innerText = "已提交：" + timeString;
+    info.style.display = "block";
 }
 
 function render() {
@@ -224,72 +190,14 @@ function render() {
         const html = `
             <div class="schedule-item">
                 <input type="checkbox" ${item.checked ? "checked" : ""} onclick="toggleCheck(${i})">
-
-                <div class="date-box">
-                    <input type="date" value="${item.date}" onchange="updateDate(${i}, this.value)">
-                </div>
-
-                <input type="text" 
-                       class="note-input"
-                       value="${item.text}" 
-                       placeholder="備註..."
-                       oninput="updateText(${i}, this.value)">
+                <input type="text"
+                    class="note-input"
+                    value="${item.text}"
+                    placeholder="行程內容..."
+                    oninput="updateText(${i}, this.value)">
             </div>
         `;
         container.insertAdjacentHTML("beforeend", html);
-    });
-}
-
-/* 自動偵測本週一～週五 */
-function getWeekRange() {
-    const today = new Date();
-    const day = today.getDay();
-
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - (day === 0 ? 6 : day - 1));
-
-    const friday = new Date(monday);
-    friday.setDate(monday.getDate() + 4);
-
-    return {
-        start: monday.toISOString().split("T")[0],
-        end: friday.toISOString().split("T")[0]
-    };
-}
-
-/* 週表格模式 */
-function renderWeekView() {
-    const { start, end } = getWeekRange();
-    document.getElementById("weekRange").innerText = `${start} - ${end}`;
-
-    const days = ["週一", "週二", "週三", "週四", "週五"];
-    const container = document.getElementById("weekView");
-    container.innerHTML = "";
-
-    let html = "<table><tr>";
-    days.forEach(d => html += `<th>${d}</th>`);
-    html += "</tr><tr>";
-
-    days.forEach(() => html += `<td class='dayCol'></td>`);
-    html += "</tr></table>";
-    container.innerHTML = html;
-
-    const cols = container.querySelectorAll(".dayCol");
-    const list = data[currentUser] || [];
-
-    list.forEach(item => {
-        if (!item.date) return;
-
-        let d = new Date(item.date);
-        let w = d.getDay();
-        if (w < 1 || w > 5) return;
-
-        let idx = w - 1;
-        let div = document.createElement("div");
-        div.textContent = item.text;
-        div.style.marginBottom = "6px";
-
-        cols[idx].appendChild(div);
     });
 }
 
