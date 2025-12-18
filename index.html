@@ -12,9 +12,7 @@
         background: #f5f5f7;
     }
 
-    h2, h3 {
-        margin-top: 10px;
-    }
+    h2, h3 { margin-top: 10px; }
 
     /* iOS 風格按鈕 */
     .btn {
@@ -22,7 +20,7 @@
         border-radius: 12px;
         border: none;
         font-size: 15px;
-        cursor: pointer;ac
+        cursor: pointer;
         margin-right: 10px;
         box-shadow: 0 2px 6px rgba(0,0,0,0.15);
     }
@@ -74,16 +72,15 @@
             flex-direction: column;
             align-items: flex-start;
         }
-        .schedule-item input[type="date"] {
+        .schedule-item input[type="date"],
+        .schedule-item input[type="text"],
+        .btn {
             width: 100%;
+            margin-bottom: 6px;
         }
-        .schedule-item input[type="text"] {
-            width: 100%;
-        }
-        .btn { width: 100%; margin-bottom: 6px; }
     }
 
-    /* 週表格模式 */
+    /* 週表格 */
     table {
         width: 100%;
         border-collapse: collapse;
@@ -99,9 +96,7 @@
         text-align: left;
         vertical-align: top;
     }
-    th {
-        background: #f2f2f7;
-    }
+    th { background: #f2f2f7; }
 </style>
 </head>
 
@@ -152,32 +147,18 @@ function addItem() {
     render();
 }
 
-function updateDate(i, val) {
-    data[currentUser][i].date = val;
-    save();
-}
-
-function updateText(i, val) {
-    data[currentUser][i].text = val;
-    save();
-}
-
-function toggleCheck(i) {
-    data[currentUser][i].checked = !data[currentUser][i].checked;
-    save();
-}
+function updateDate(i, val) { data[currentUser][i].date = val; save(); }
+function updateText(i, val) { data[currentUser][i].text = val; save(); }
+function toggleCheck(i) { data[currentUser][i].checked = !data[currentUser][i].checked; save(); }
 
 async function submitChecked() {
     const list = data[currentUser] || [];
     const selected = list.filter(x => x.checked);
 
-    if (selected.length === 0) {
-        alert("沒有已勾選的行程");
-        return;
-    }
+    if (selected.length === 0) return alert("沒有已勾選的行程");
 
     for (const item of selected) {
-        await fetch("https://script.google.com/macros/s/AKfycbz6VKVynauggX3CPLC2-CUaKpRkACaItVUeUpJ43LScrTD4nyuCq1EhB5XGSFd2djiQ/exec", {
+        await fetch("https://script.google.com/macros/s/AKfycbxrH2iNPAGW85KLZwGvcWo6wYgeJkSqM1J_CbW4iR85sI8FSr_4tc9Uq9lRDHNAcbC0/exec", {
             method: "POST",
             mode: "no-cors",
             headers: { "Content-Type": "application/json" },
@@ -185,7 +166,7 @@ async function submitChecked() {
                 name: currentUser,
                 date: item.date,
                 text: item.text
-            }),
+            })
         });
     }
 
@@ -214,14 +195,12 @@ function render() {
     });
 }
 
-/* 自動偵測本週一～週五 */
+/* 自動週一〜週五 */
 function getWeekRange() {
     const today = new Date();
-    const day = today.getDay(); // 0(日)~6(六)
-
+    const day = today.getDay();
     const monday = new Date(today);
     monday.setDate(today.getDate() - (day === 0 ? 6 : day - 1));
-
     const friday = new Date(monday);
     friday.setDate(monday.getDate() + 4);
 
@@ -233,9 +212,8 @@ function getWeekRange() {
     };
 }
 
-/* 週表格模式 */
 function renderWeekView() {
-    const { start, end, monday } = getWeekRange();
+    const { start, end } = getWeekRange();
     document.getElementById("weekRange").innerText = `${start} - ${end}`;
 
     const days = ["週一", "週二", "週三", "週四", "週五"];
@@ -245,7 +223,6 @@ function renderWeekView() {
     let html = "<table><tr>";
     days.forEach(d => html += `<th>${d}</th>`);
     html += "</tr><tr>";
-
     days.forEach(() => html += `<td class='dayCol'></td>`);
     html += "</tr></table>";
     container.innerHTML = html;
