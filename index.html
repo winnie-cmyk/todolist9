@@ -40,7 +40,7 @@
         margin-right: 6px;
     }
 
-    /* 行程卡片 */
+    /* 行程卡片：永遠同一行（包含手機版） */
     .schedule-item {
         background: white;
         padding: 14px;
@@ -50,15 +50,24 @@
         display: flex;
         align-items: center;
         gap: 10px;
+        width: 100%;
     }
 
-    /* 灰色日期輸入框 (iOS Style) */
+    /* 固定 checkbox 寬度 */
+    .schedule-item input[type="checkbox"] {
+        width: 22px;
+        height: 22px;
+        flex-shrink: 0;
+    }
+
+    /* 日期框 */
     .date-box {
         padding: 8px 12px;
         background: #e9e9eb;
         border-radius: 8px;
         border: 1px solid #d2d2d2;
         color: #333;
+        flex-shrink: 0;
     }
     .date-box input {
         border: none;
@@ -68,7 +77,7 @@
         outline: none;
     }
 
-    /* 備註欄位 */
+    /* 備註欄位（填滿剩餘空間） */
     .note-input {
         flex: 1;
         padding: 8px;
@@ -76,17 +85,16 @@
         border: 1px solid #ccc;
     }
 
-    /* 手機排版 */
+    /* 手機模式：維持同行 */
     @media (max-width: 600px) {
         .schedule-item {
-            flex-direction: column;
-            align-items: flex-start;
+            flex-direction: row;
         }
         .note-input {
             width: 100%;
         }
-        .date-box {
-            width: 100%;
+        .date-box input {
+            width: 120px;
         }
         .btn { width: 100%; margin-bottom: 6px; }
     }
@@ -110,6 +118,7 @@
     th {
         background: #f2f2f7;
     }
+
 </style>
 </head>
 
@@ -234,7 +243,7 @@ function render() {
 /* 自動偵測本週一～週五 */
 function getWeekRange() {
     const today = new Date();
-    const day = today.getDay(); // 0(日)~6(六)
+    const day = today.getDay();
 
     const monday = new Date(today);
     monday.setDate(today.getDate() - (day === 0 ? 6 : day - 1));
@@ -244,9 +253,7 @@ function getWeekRange() {
 
     return {
         start: monday.toISOString().split("T")[0],
-        end: friday.toISOString().split("T")[0],
-        monday,
-        friday
+        end: friday.toISOString().split("T")[0]
     };
 }
 
@@ -278,7 +285,6 @@ function renderWeekView() {
         if (w < 1 || w > 5) return;
 
         let idx = w - 1;
-
         let div = document.createElement("div");
         div.textContent = item.text;
         div.style.marginBottom = "6px";
