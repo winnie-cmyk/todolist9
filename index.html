@@ -22,7 +22,7 @@
         border-radius: 12px;
         border: none;
         font-size: 15px;
-        cursor: pointer;ac
+        cursor: pointer;
         margin-right: 10px;
         box-shadow: 0 2px 6px rgba(0,0,0,0.15);
     }
@@ -52,16 +52,24 @@
         gap: 10px;
     }
 
-    /* 日期欄位 */
-    .schedule-item input[type="date"] {
-        padding: 8px;
+    /* 灰色日期輸入框 (iOS Style) */
+    .date-box {
+        padding: 8px 12px;
+        background: #e9e9eb;
         border-radius: 8px;
-        border: 1px solid #ccc;
-        width: 135px;
+        border: 1px solid #d2d2d2;
+        color: #333;
+    }
+    .date-box input {
+        border: none;
+        background: transparent;
+        font-size: 14px;
+        width: 140px;
+        outline: none;
     }
 
     /* 備註欄位 */
-    .schedule-item input[type="text"] {
+    .note-input {
         flex: 1;
         padding: 8px;
         border-radius: 8px;
@@ -74,10 +82,10 @@
             flex-direction: column;
             align-items: flex-start;
         }
-        .schedule-item input[type="date"] {
+        .note-input {
             width: 100%;
         }
-        .schedule-item input[type="text"] {
+        .date-box {
             width: 100%;
         }
         .btn { width: 100%; margin-bottom: 6px; }
@@ -177,16 +185,19 @@ async function submitChecked() {
     }
 
     for (const item of selected) {
-        await fetch("https://script.google.com/macros/s/AKfycbwu9kUxnjs3pROyi88Cp8AWUnvu0vstGvSZaPg1UGwraQrg7ypiwzHn4FmunfFGWLk2/exec", {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                name: currentUser,
-                date: item.date,
-                text: item.text
-            }),
-        });
+        await fetch(
+            "https://script.google.com/macros/s/AKfycbz6VKVynauggX3CPLC2-CUaKpRkACaItVUeUpJ43LScrTD4nyuCq1EhB5XGSFd2djiQ/exec",
+            {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: currentUser,
+                    date: item.date,
+                    note: item.text
+                }),
+            }
+        );
     }
 
     data[currentUser] = list.filter(x => !x.checked);
@@ -201,16 +212,22 @@ function render() {
     const list = data[currentUser] || [];
 
     list.forEach((item, i) => {
-        const div = document.createElement("div");
-        div.className = "schedule-item";
+        const html = `
+            <div class="schedule-item">
+                <input type="checkbox" ${item.checked ? "checked" : ""} onclick="toggleCheck(${i})">
 
-        div.innerHTML = `
-            <input type="checkbox" ${item.checked ? "checked" : ""} onclick="toggleCheck(${i})">
-            <input type="date" value="${item.date}" onchange="updateDate(${i}, this.value)">
-            <input type="text" value="${item.text}" placeholder="備註…" oninput="updateText(${i}, this.value)">
+                <div class="date-box">
+                    <input type="date" value="${item.date}" onchange="updateDate(${i}, this.value)">
+                </div>
+
+                <input type="text" 
+                       class="note-input"
+                       value="${item.text}" 
+                       placeholder="備註..."
+                       oninput="updateText(${i}, this.value)">
+            </div>
         `;
-
-        container.appendChild(div);
+        container.insertAdjacentHTML("beforeend", html);
     });
 }
 
@@ -235,7 +252,7 @@ function getWeekRange() {
 
 /* 週表格模式 */
 function renderWeekView() {
-    const { start, end, monday } = getWeekRange();
+    const { start, end } = getWeekRange();
     document.getElementById("weekRange").innerText = `${start} - ${end}`;
 
     const days = ["週一", "週二", "週三", "週四", "週五"];
