@@ -38,6 +38,14 @@
         cursor: pointer;
         background: #e5e5ea;
         margin-right: 6px;
+        transition: 0.2s;
+    }
+
+    /* ★★★ 新增：使用者按鈕反色樣式 ★★★ */
+    .tabs button.active {
+        background: #007aff !important;
+        color: white !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.25);
     }
 
     /* 行程卡片：固定同行 */
@@ -92,9 +100,9 @@
 <h2>📅 行程管理系統</h2>
 
 <div class="tabs">
-    <button onclick="switchUser('ROGER')">ROGER</button>
-    <button onclick="switchUser('HANK')">HANK</button>
-    <button onclick="switchUser('FRANK')">FRANK</button>
+    <button id="btn-ROGER" onclick="switchUser('ROGER')">ROGER</button>
+    <button id="btn-HANK" onclick="switchUser('HANK')">HANK</button>
+    <button id="btn-FRANK" onclick="switchUser('FRANK')">FRANK</button>
 </div>
 
 <h3 id="currentUserTitle">ROGER 的行程</h3>
@@ -111,9 +119,20 @@ const STORAGE_KEY = 'weeklyScheduleData';
 let data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
 let currentUser = 'ROGER';
 
+/* ★★★ 新增：切換使用者時按鈕反色 ★★★ */
+function updateUserButtons() {
+    ["ROGER", "HANK", "FRANK"].forEach(name => {
+        const btn = document.getElementById("btn-" + name);
+        if (name === currentUser) btn.classList.add("active");
+        else btn.classList.remove("active");
+    });
+}
+
 function switchUser(u) {
     currentUser = u;
     document.getElementById("currentUserTitle").innerText = u + " 的行程";
+
+    updateUserButtons();  // ★ 更新反色
     render();
 }
 
@@ -162,18 +181,16 @@ async function submitChecked() {
         );
     }
 
-    /* 清除已提交 */
     data[currentUser] = list.filter(x => !x.checked);
     save();
     render();
 
-    /* 顯示提交時間 */
     const info = document.getElementById("submitInfo");
     const now = new Date();
     const timeString =
         now.getFullYear() + "/" +
-        (now.getMonth() + 1).toString().padStart(2, "0") + "/" +
-        now.getDate().toString().padStart(2, "0") +
+        String(now.getMonth() + 1).padStart(2, "0") + "/" +
+        String(now.getDate()).padStart(2, "0") +
         " " +
         now.toLocaleTimeString("zh-TW", { hour12: false });
 
@@ -201,7 +218,9 @@ function render() {
     });
 }
 
+/* 啟動後預設 ROGER 並反色 */
 switchUser("ROGER");
+updateUserButtons();
 </script>
 
 </body>
